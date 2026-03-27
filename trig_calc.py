@@ -3,13 +3,14 @@
 1. 程序启动后默认展示风向时钟计算器主界面，不再直接展示三角函数界面。
 2. 主界面左上角提供一个隐藏图标按钮，短时间内连续点击 3 下会弹出三角函数计算窗口，
    连续点击 4 下会切换主界面中的风向角度区域显示状态。
-3. 主界面提供基础科学计算与四则运算，表达式计算使用 AST 白名单解析，避免直接执行任意代码。
-4. 风向角度区域基于当前结果计算相对方位角，并在主界面顶部展示风向与换算后的角度结果。
+3. 主界面提供基础科学计算、四则运算与时钟夹角计算，":" 用于输入 HH:MM 时间并计算时针分针夹角。
+4. 风向角度区域基于当前结果计算相对方位角，并在主界面顶部展示风向或时钟换算结果。
 """
 
 import ast
 import math
 import operator as op
+import re
 import tkinter as tk
 from tkinter import messagebox
 
@@ -62,6 +63,29 @@ def normalize_angle(angle: float):
     if angle < 0:
         angle += 360.0
     return angle
+
+
+def parse_clock_time(text: str):
+    match = re.fullmatch(r"\s*(\d{1,2}):(\d{1,2})\s*", text or "")
+    if match is None:
+        raise ValueError("时间格式应为 HH:MM，例如 10:30")
+
+    hours = int(match.group(1))
+    minutes = int(match.group(2))
+    if hours < 0 or hours > 23:
+        raise ValueError("小时必须在 0 到 23 之间")
+    if minutes < 0 or minutes > 59:
+        raise ValueError("分钟必须在 0 到 59 之间")
+    return hours, minutes
+
+
+def calc_clock_angle(text: str):
+    hours, minutes = parse_clock_time(text)
+    hour_angle = normalize_angle((hours % 12) * 30 + minutes * 0.5)
+    minute_angle = normalize_angle(minutes * 6)
+    diff = abs(hour_angle - minute_angle)
+    included_angle = min(diff, 360 - diff)
+    return hour_angle, minute_angle, included_angle
 
 
 _ALLOWED_BINOP = {
@@ -605,7 +629,7 @@ class WindClockCalculatorApp:
         buttons = [
             ("C", self.clear_expression),
             ("⌫", self.backspace),
-            (":", lambda: self.append_operator("/")),
+            (":", self.append_time_separator),
             ("/", lambda: self.append_operator("/")),
             ("7", lambda: self.append_digit("7")),
             ("8", lambda: self.append_digit("8")),
@@ -752,6 +776,15 @@ class WindClockCalculatorApp:
         self.expression += operator_text
         self.refresh_expression_display()
 
+    def append_time_separator(self):
+        self.prepare_for_input(reset_on_evaluated=True)
+        if ":" in self.expression:
+            return
+        if not self.expression:
+            self.expression = "0"
+        self.expression += ":"
+        self.refresh_expression_display()
+
     def append_function(self, func_text: str):
         self.prepare_for_input(reset_on_evaluated=True)
         self.expression += func_text
@@ -778,6 +811,10 @@ class WindClockCalculatorApp:
 
     def evaluate_expression(self):
         target = self.expression or self.var_display.get()
+        if ":" in target:
+            self.evaluate_clock_angle(target)
+            return
+
         try:
             result = safe_eval(target, angle_mode=self.angle_mode)
         except Exception as exc:
@@ -789,8 +826,27 @@ class WindClockCalculatorApp:
         self.expression = ""
         self.var_expression.set(f"{target} =")
         self.var_display.set(fmt(result))
+        self.var_wind_info.set("")
+
+    def evaluate_clock_angle(self, target: str):
+        try:
+            hour_angle, minute_angle, included_angle = calc_clock_angle(target)
+        except Exception as exc:
+            messagebox.showerror("错误", str(exc))
+            return
+
+        self.last_result = included_angle
+        self.just_evaluated = True
+        self.expression = ""
+        self.var_expression.set("")
+        self.var_display.set(target.strip())
+        self.var_wind_info.set(
+            f"时针:{fmt(hour_angle)}°  分针:{fmt(minute_angle)}°  夹角:{fmt(included_angle)}°"
+        )
 
     def resolve_current_value(self):
+        if self.just_evaluated and not self.expression:
+            return self.last_result
         target = self.expression or self.var_display.get()
         return safe_eval(target, angle_mode=self.angle_mode)
 

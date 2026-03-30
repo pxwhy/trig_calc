@@ -58,6 +58,14 @@ def fmt(value: float):
     return text if text else "0"
 
 
+def fmt_angle(value: float):
+    if value is None:
+        return ""
+    if not math.isfinite(value):
+        return "NaN"
+    return f"{value:.1f}"
+
+
 def normalize_angle(angle: float):
     angle %= 360.0
     if angle < 0:
@@ -523,6 +531,7 @@ class WindClockCalculatorApp:
         self.var_expression = tk.StringVar(value="")
         self.var_display = tk.StringVar(value="0")
         self.var_wind_info = tk.StringVar(value="")
+        self.var_clock_hint = tk.StringVar(value="基准: 12点方向=0°，顺时针递增")
         self.var_mode = tk.StringVar(value="模式: DEG")
         self.result_label = None
 
@@ -581,11 +590,14 @@ class WindClockCalculatorApp:
         tk.Label(display, textvariable=self.var_wind_info, bg=self.bg, anchor="e").grid(
             row=2, column=0, sticky="e"
         )
-        tk.Label(display, text="角度", bg=self.bg, anchor="e", font=("Helvetica", 12)).grid(
+        tk.Label(display, textvariable=self.var_clock_hint, bg=self.bg, anchor="e").grid(
             row=3, column=0, sticky="e"
         )
-        tk.Label(display, textvariable=self.var_mode, bg=self.bg, anchor="e").grid(
+        tk.Label(display, text="角度", bg=self.bg, anchor="e", font=("Helvetica", 12)).grid(
             row=4, column=0, sticky="e"
+        )
+        tk.Label(display, textvariable=self.var_mode, bg=self.bg, anchor="e").grid(
+            row=5, column=0, sticky="e"
         )
 
         self._build_science_panel()
@@ -748,6 +760,7 @@ class WindClockCalculatorApp:
         self.var_expression.set("")
         self.var_display.set("0")
         self.var_wind_info.set("")
+        self.var_clock_hint.set("基准: 12点方向=0°，顺时针递增")
 
     def backspace(self):
         if self.just_evaluated:
@@ -803,6 +816,7 @@ class WindClockCalculatorApp:
         if self.just_evaluated and reset_on_evaluated:
             self.expression = ""
             self.var_wind_info.set("")
+            self.var_clock_hint.set("基准: 12点方向=0°，顺时针递增")
         self.just_evaluated = False
 
     def refresh_expression_display(self):
@@ -827,6 +841,7 @@ class WindClockCalculatorApp:
         self.var_expression.set(f"{target} =")
         self.var_display.set(fmt(result))
         self.var_wind_info.set("")
+        self.var_clock_hint.set("基准: 12点方向=0°，顺时针递增")
 
     def evaluate_clock_angle(self, target: str):
         try:
@@ -841,8 +856,9 @@ class WindClockCalculatorApp:
         self.var_expression.set("")
         self.var_display.set(target.strip())
         self.var_wind_info.set(
-            f"时针:{fmt(hour_angle)}°  分针:{fmt(minute_angle)}°  夹角:{fmt(included_angle)}°"
+            f"时针:{fmt_angle(hour_angle)}°  分针:{fmt_angle(minute_angle)}°  夹角:{fmt_angle(included_angle)}°"
         )
+        self.var_clock_hint.set("文档规则: 12点方向=0°，按顺时针计算")
 
     def resolve_current_value(self):
         if self.just_evaluated and not self.expression:
@@ -863,7 +879,8 @@ class WindClockCalculatorApp:
         self.expression = ""
         self.var_expression.set("")
         self.var_display.set(fmt(result))
-        self.var_wind_info.set(f"风向:{fmt(base_angle)}°  {label}:{fmt(result)}°")
+        self.var_wind_info.set(f"风向:{fmt_angle(base_angle)}°  {label}:{fmt_angle(result)}°")
+        self.var_clock_hint.set("基准: 12点方向=0°，顺时针递增")
 
 
 def main():

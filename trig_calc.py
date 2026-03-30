@@ -524,8 +524,8 @@ class WindClockCalculatorApp:
         self.expression = ""
         self.last_result = 0.0
         self.just_evaluated = False
-        self.secret_clicks = 0
-        self.secret_job = None
+        self.colon_clicks = 0
+        self.colon_job = None
         self.trig_dialog = None
 
         self.var_expression = tk.StringVar(value="")
@@ -549,30 +549,8 @@ class WindClockCalculatorApp:
         self._build_ui()
 
     def _build_ui(self):
-        header = tk.Frame(self.root, bg=self.bg)
-        header.grid(row=0, column=0, sticky="we", padx=8, pady=(8, 4))
-        header.columnconfigure(1, weight=1)
-
-        self.secret_button = tk.Button(
-            header,
-            text="◉",
-            width=3,
-            height=1,
-            bd=1,
-            relief="flat",
-            padx=6,
-            pady=4,
-            bg="#dcdcdc",
-            activebackground="#d0d0d0",
-            command=self.on_secret_click,
-        )
-        self.secret_button.grid(row=0, column=0, sticky="w", padx=(0, 6))
-
-        title = tk.Label(header, text="科学计算器", bg=self.bg, anchor="w")
-        title.grid(row=0, column=1, sticky="w")
-
         display = tk.Frame(self.root, bg=self.bg)
-        display.grid(row=1, column=0, sticky="we", padx=12, pady=(4, 8))
+        display.grid(row=0, column=0, sticky="we", padx=12, pady=(8, 8))
         display.columnconfigure(0, weight=1)
 
         tk.Label(display, textvariable=self.var_expression, bg=self.bg, anchor="e").grid(
@@ -607,7 +585,7 @@ class WindClockCalculatorApp:
 
     def _build_science_panel(self):
         frame = tk.LabelFrame(self.root, text="科学计算", bg=self.bg)
-        frame.grid(row=2, column=0, sticky="we", padx=8, pady=(4, 8))
+        frame.grid(row=1, column=0, sticky="we", padx=8, pady=(4, 8))
 
         buttons = [
             ("sin", lambda: self.append_function("sin(")),
@@ -636,12 +614,12 @@ class WindClockCalculatorApp:
 
     def _build_calc_panel(self):
         frame = tk.LabelFrame(self.root, text="计算", bg=self.bg)
-        frame.grid(row=3, column=0, sticky="we", padx=8, pady=(0, 8))
+        frame.grid(row=2, column=0, sticky="we", padx=8, pady=(0, 8))
 
         buttons = [
             ("C", self.clear_expression),
             ("⌫", self.backspace),
-            (":", self.append_time_separator),
+            (":", self.on_colon_click),
             ("/", lambda: self.append_operator("/")),
             ("7", lambda: self.append_digit("7")),
             ("8", lambda: self.append_digit("8")),
@@ -675,7 +653,7 @@ class WindClockCalculatorApp:
 
     def _build_wind_panel(self):
         self.wind_frame = tk.LabelFrame(self.root, text="风向角度", bg=self.bg)
-        self.wind_frame.grid(row=4, column=0, sticky="we", padx=8, pady=(0, 8))
+        self.wind_frame.grid(row=3, column=0, sticky="we", padx=8, pady=(0, 8))
 
         labels = ["顺风", "逆风", "正左", "正右", "右前", "左前", "右后", "左后"]
         for index, label in enumerate(labels):
@@ -704,18 +682,20 @@ class WindClockCalculatorApp:
             command=command,
         )
 
-    def on_secret_click(self):
-        self.secret_clicks += 1
-        if self.secret_job is not None:
-            self.root.after_cancel(self.secret_job)
-        self.secret_job = self.root.after(self.SECRET_DELAY_MS, self.flush_secret_clicks)
+    def on_colon_click(self):
+        self.colon_clicks += 1
+        if self.colon_job is not None:
+            self.root.after_cancel(self.colon_job)
+        self.colon_job = self.root.after(self.SECRET_DELAY_MS, self.flush_colon_clicks)
 
-    def flush_secret_clicks(self):
-        count = self.secret_clicks
-        self.secret_clicks = 0
-        self.secret_job = None
+    def flush_colon_clicks(self):
+        count = self.colon_clicks
+        self.colon_clicks = 0
+        self.colon_job = None
 
-        if count == 3:
+        if count == 1:
+            self.append_time_separator()
+        elif count == 3:
             self.open_trig_dialog()
         elif count >= 4:
             self.toggle_wind_panel()
@@ -734,9 +714,7 @@ class WindClockCalculatorApp:
     def restore_main_focus(self):
         def _restore():
             try:
-                if self.secret_button is not None and self.secret_button.winfo_exists():
-                    self.secret_button.focus_set()
-                elif self.result_label is not None and self.result_label.winfo_exists():
+                if self.result_label is not None and self.result_label.winfo_exists():
                     self.result_label.focus_set()
             except tk.TclError:
                 return

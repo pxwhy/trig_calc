@@ -1,6 +1,6 @@
 """
 实现逻辑说明：
-1. 程序启动后默认展示风向时钟计算器主界面，不再直接展示三角函数界面。
+1. 程序启动后默认展示科学计算器主界面，不再直接展示三角函数界面。
 2. 主界面左上角提供一个隐藏图标按钮，短时间内连续点击 3 下会弹出三角函数计算窗口，
    连续点击 4 下会切换主界面中的风向角度区域显示状态。
 3. 主界面提供基础科学计算、四则运算与时钟夹角计算，":" 用于输入 HH:MM 时间并计算时针分针夹角。
@@ -515,7 +515,7 @@ class WindClockCalculatorApp:
 
     def __init__(self, root: tk.Tk):
         self.root = root
-        self.root.title("风向时钟计算器")
+        self.root.title("科学计算器")
         self.root.resizable(False, False)
         self.bg = "#e9e9e9"
         self.root.configure(bg=self.bg)
@@ -568,7 +568,7 @@ class WindClockCalculatorApp:
         )
         self.secret_button.grid(row=0, column=0, sticky="w", padx=(0, 6))
 
-        title = tk.Label(header, text="风向时钟计算器", bg=self.bg, anchor="w")
+        title = tk.Label(header, text="科学计算器", bg=self.bg, anchor="w")
         title.grid(row=0, column=1, sticky="w")
 
         display = tk.Frame(self.root, bg=self.bg)

@@ -574,82 +574,91 @@ class WindClockCalculatorApp:
             row=4, column=0, sticky="e"
         )
 
-        self._build_science_panel()
-        self._build_calc_panel()
+        self._build_unified_panel()
         self._build_wind_panel()
         self.wind_frame.grid_remove()
 
-    def _build_science_panel(self):
-        frame = tk.LabelFrame(self.root, text="科学计算", bg=self.bg)
-        frame.grid(row=1, column=0, sticky="we", padx=8, pady=(4, 8))
+    def _build_unified_panel(self):
+        panel = tk.Frame(self.root, bg=self.bg)
+        panel.grid(row=1, column=0, sticky="we", padx=8, pady=(4, 8))
 
-        buttons = [
-            ("sin", lambda: self.append_function("sin(")),
-            ("cos", lambda: self.append_function("cos(")),
-            ("tan", lambda: self.append_function("tan(")),
-            ("sqrt", lambda: self.append_function("sqrt(")),
-            ("x^2", lambda: self.append_power(2)),
-            ("pi", lambda: self.append_token("pi")),
-            ("log", lambda: self.append_function("log(")),
-            ("ln", lambda: self.append_function("ln(")),
-            ("x^3", lambda: self.append_power(3)),
-            ("1/x", lambda: self.append_function("inv(")),
-            ("e", lambda: self.append_token("e")),
-            ("Rad", self.toggle_angle_mode),
+        shortcut_rows = [
+            [
+                ("sin", lambda: self.append_function("sin(")),
+                ("cos", lambda: self.append_function("cos(")),
+                ("tan", lambda: self.append_function("tan(")),
+                ("log", lambda: self.append_function("log(")),
+                ("ln", lambda: self.append_function("ln(")),
+                ("Rad", self.toggle_angle_mode),
+            ],
+            [
+                ("1/x", lambda: self.append_function("inv(")),
+                ("x^2", lambda: self.append_power(2)),
+                ("x^3", lambda: self.append_power(3)),
+                ("sqrt", lambda: self.append_function("sqrt(")),
+                ("pi", lambda: self.append_token("pi")),
+                ("e", lambda: self.append_token("e")),
+            ],
         ]
 
-        for index, (text, command) in enumerate(buttons):
-            row_index = index // 6
-            column_index = index % 6
-            frame.grid_columnconfigure(column_index, weight=1, uniform="science")
-            frame.grid_rowconfigure(row_index, weight=1)
-            button = self._build_main_button(frame, text=text, command=command)
-            button.grid(row=row_index, column=column_index, padx=4, pady=4, sticky="nsew")
-            if text == "Rad":
-                self.rad_button = button
+        for row_index, buttons in enumerate(shortcut_rows):
+            row_frame = tk.Frame(panel, bg=self.bg)
+            row_frame.grid(row=row_index, column=0, sticky="we", pady=(0, 6))
+            for column_index, (text, command) in enumerate(buttons):
+                row_frame.grid_columnconfigure(column_index, weight=1, uniform=f"shortcut{row_index}")
+                button = self._build_main_button(row_frame, text=text, command=command, width=8, height=1)
+                button.grid(row=0, column=column_index, padx=4, sticky="nsew")
+                if text == "Rad":
+                    self.rad_button = button
 
-    def _build_calc_panel(self):
-        frame = tk.LabelFrame(self.root, text="计算", bg=self.bg)
-        frame.grid(row=2, column=0, sticky="we", padx=8, pady=(0, 8))
+        keypad_frame = tk.Frame(panel, bg=self.bg)
+        keypad_frame.grid(row=2, column=0, sticky="we")
 
-        buttons = [
+        keypad_buttons = [
+            ("%", lambda: self.append_operator("%")),
+            ("CE", self.clear_expression),
             ("C", self.clear_expression),
             ("⌫", self.backspace),
-            (":", self.on_colon_click),
+            ("(", lambda: self.append_token("(")),
+            (")", lambda: self.append_token(")")),
             ("/", lambda: self.append_operator("/")),
+            ("*", lambda: self.append_operator("*")),
             ("7", lambda: self.append_digit("7")),
             ("8", lambda: self.append_digit("8")),
             ("9", lambda: self.append_digit("9")),
-            ("*", lambda: self.append_operator("*")),
+            ("-", lambda: self.append_operator("-")),
             ("4", lambda: self.append_digit("4")),
             ("5", lambda: self.append_digit("5")),
             ("6", lambda: self.append_digit("6")),
-            ("-", lambda: self.append_operator("-")),
+            ("+", lambda: self.append_operator("+")),
             ("1", lambda: self.append_digit("1")),
             ("2", lambda: self.append_digit("2")),
             ("3", lambda: self.append_digit("3")),
-            ("+", lambda: self.append_operator("+")),
+            ("=", self.evaluate_expression),
+            (":", self.on_colon_click),
             ("0", lambda: self.append_digit("0")),
             (".", lambda: self.append_digit(".")),
-            ("=", self.evaluate_expression),
-            ("(", lambda: self.append_token("(")),
-            (")", lambda: self.append_token(")")),
         ]
 
-        for index, (text, command) in enumerate(buttons):
+        for index, (text, command) in enumerate(keypad_buttons):
             row_index = index // 4
             column_index = index % 4
-            if text in ("(", ")"):
-                row_index = 4
-                column_index = 3 + (0 if text == "(" else 1)
-            frame.grid_columnconfigure(column_index, weight=1, uniform="calc")
-            frame.grid_rowconfigure(row_index, weight=1)
-            button = self._build_main_button(frame, text=text, command=command)
+            keypad_frame.grid_columnconfigure(column_index, weight=1, uniform="keypad")
+            keypad_frame.grid_rowconfigure(row_index, weight=1)
+            button = self._build_main_button(keypad_frame, text=text, command=command, width=8, height=2)
+            if text == "=":
+                button.configure(bg="#f0dfb8", activebackground="#e7d19b")
             button.grid(row=row_index, column=column_index, padx=4, pady=4, sticky="nsew")
+
+        # 保留底部右侧留白，让左下角 ":" 更接近示例图位置
+        keypad_frame.grid_columnconfigure(3, weight=1, uniform="keypad")
+        keypad_frame.grid_rowconfigure(5, weight=1)
+        filler = tk.Frame(keypad_frame, bg=self.bg)
+        filler.grid(row=5, column=3, padx=4, pady=4, sticky="nsew")
 
     def _build_wind_panel(self):
         self.wind_frame = tk.LabelFrame(self.root, text="风向角度", bg=self.bg)
-        self.wind_frame.grid(row=3, column=0, sticky="we", padx=8, pady=(0, 8))
+        self.wind_frame.grid(row=2, column=0, sticky="we", padx=8, pady=(0, 8))
 
         labels = ["顺风", "逆风", "正左", "正右", "右前", "左前", "右后", "左后"]
         for index, label in enumerate(labels):
@@ -664,12 +673,12 @@ class WindClockCalculatorApp:
                 width=12,
             ).grid(row=row_index, column=column_index, padx=4, pady=4, sticky="nsew")
 
-    def _build_main_button(self, parent, text, command, width=9):
+    def _build_main_button(self, parent, text, command, width=9, height=2):
         return tk.Button(
             parent,
             text=text,
             width=width,
-            height=2,
+            height=height,
             padx=10,
             pady=8,
             relief="raised",

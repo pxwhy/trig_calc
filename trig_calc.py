@@ -546,6 +546,7 @@ class WindClockCalculatorApp:
         }
 
         self._build_ui()
+        self._bind_keyboard()
 
     def _build_ui(self):
         display = tk.Frame(self.root, bg=self.bg)
@@ -687,6 +688,9 @@ class WindClockCalculatorApp:
             command=command,
         )
 
+    def _bind_keyboard(self):
+        self.root.bind("<Key>", self.on_key_press)
+
     def on_colon_click(self):
         self.colon_clicks += 1
         if self.colon_job is not None:
@@ -736,6 +740,42 @@ class WindClockCalculatorApp:
         self.angle_mode = "rad" if self.angle_mode == "deg" else "deg"
         self.var_mode.set(f"模式: {self.angle_mode.upper()}")
         self.rad_button.configure(text="Deg" if self.angle_mode == "rad" else "Rad")
+
+    def on_key_press(self, event):
+        key = event.keysym
+        char = event.char
+
+        if char and char.isdigit():
+            self.append_digit(char)
+            return "break"
+
+        if char in {"+", "-", "*", "/", "%"}:
+            self.append_operator(char)
+            return "break"
+
+        if char in {"(", ")"}:
+            self.append_token(char)
+            return "break"
+
+        if char == ".":
+            self.append_digit(".")
+            return "break"
+
+        if char == ":":
+            self.append_time_separator()
+            return "break"
+
+        if key in {"Return", "KP_Enter", "equal"}:
+            self.evaluate_expression()
+            return "break"
+
+        if key == "BackSpace":
+            self.backspace()
+            return "break"
+
+        if key in {"Delete", "Escape"}:
+            self.clear_expression()
+            return "break"
 
     def clear_expression(self):
         self.expression = ""
